@@ -13,7 +13,7 @@ import java.util.Objects;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    private TextInputEditText etUsername, etPassword, etHttpAddress1, etTaskRepeatPeriod;
+    private TextInputEditText etUsername, etPassword, etHttpAddress, etTaskRepeatPeriod;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,7 +24,7 @@ public class SettingsActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id.etPassword);
-        etHttpAddress1 = findViewById(R.id.etHttpAddress1);
+        etHttpAddress = findViewById(R.id.etHttpAddress);
         etTaskRepeatPeriod = findViewById(R.id.etTaskRepeatPeriod);
 
         // Настройка Toolbar (кнопка "Назад")
@@ -45,14 +45,14 @@ public class SettingsActivity extends AppCompatActivity {
     private void loadSavedSettings() {
         etUsername.setText(RouterState.getName());
         etPassword.setText(RouterState.getPassword());
-        etHttpAddress1.setText(RouterState.getMainHttpAddress());
+        etHttpAddress.setText(RouterState.getMainHttpAddress());
         etTaskRepeatPeriod.setText(String.valueOf(RouterState.getTaskRepeatPeriod()));
     }
 
     private void saveSettings(View view) {
         RouterState.setName(Objects.requireNonNull(etUsername.getText()).toString().trim());
         RouterState.setPassword(Objects.requireNonNull(etPassword.getText()).toString().trim());
-        RouterState.setMainHttpAddress(Objects.requireNonNull(etHttpAddress1.getText()).toString().trim());
+        RouterState.setMainHttpAddress(Objects.requireNonNull(etHttpAddress.getText()).toString().trim());
         RouterState.setTaskRepeatPeriod(Integer.parseInt(Objects.requireNonNull(etTaskRepeatPeriod.getText()).toString()));
         Toast.makeText(this, "Настройки успешно сохранены", Toast.LENGTH_SHORT).show();
         finish(); // закрываем Activity после сохранения

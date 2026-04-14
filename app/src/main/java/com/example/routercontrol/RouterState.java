@@ -104,12 +104,6 @@ class RouterState {
 
     static void setRestrictionApplied(boolean restrictionAppliedValue) {
         restrictionApplied = restrictionAppliedValue;
-        if (restrictionApplied && restrictionPlanned) {
-            restrictionDisableTime = getLocalTimeFromString(restrictionEndTime, true);
-        } else {
-            restrictionDisableTime = null;
-            restrictionPlanned = false;
-        }
         saveState();
         updateIndicatorsPanel();
     }
@@ -169,6 +163,10 @@ class RouterState {
         return RouterState.taskRepeatPeriod;
     }
 
+    static void setRouterContext(Context appContext) {
+        context = appContext;
+    }
+
     private static void saveState() {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
@@ -181,6 +179,7 @@ class RouterState {
         editor.putString("name", name);
         editor.putString("password", password);
         editor.putString("mainHttpAddress", mainHttpAddress);
+        editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
         editor.apply(); // асинхронно и быстрее, чем commit()
     }
 
@@ -196,6 +195,7 @@ class RouterState {
         name = prefs.getString("name", "");
         password = prefs.getString("password", "");
         mainHttpAddress = prefs.getString("mainHttpAddress", "");
+        taskRepeatPeriod = prefs.getInt("taskRepeatPeriod", 30);
         Log.d("loadState", "loadState. name value: " + name);
     }
 

@@ -84,27 +84,27 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        super.onPause();
         RouterState.setAppActive(false);
         AppLogger.addLog(this, "SUCCESS", "onPause. Application is paused");
         Log.d("onPause", "onPause. Application is paused");
-        super.onPause();
     }
 
     @Override
     protected void onStop() {
+        super.onStop();
         RouterState.setAppActive(false);
         AppLogger.addLog(this, "SUCCESS", "onStop. Application is stopped");
         Log.d("onPause", "onStop. Application is stopped");
-        super.onStop();
     }
 
     @Override
     protected void onResume() {
+        super.onResume();
+//        RouterState.loadState(this);
         RouterState.setAppActive(true);
         AppLogger.addLog(this, "SUCCESS", "onResume. Application is resumed");
         Log.d("onResume", "onResume. Application is resumed");
-        super.onResume();
-        RouterState.loadState(this);
     }
 
     public void startSchedule(View view) {
@@ -138,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initApplicationState() {
         // Get saved Router state
+        RouterState.loadState(this);
         if (!RouterState.getRestrictionStartTime().isEmpty())
             startTime.setText(RouterState.getRestrictionStartTime());
         if (!RouterState.getRestrictionEndTime().isEmpty())
