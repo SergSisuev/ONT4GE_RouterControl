@@ -37,6 +37,7 @@ public class DailyTaskWorker extends Worker {
             AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is finished successfully");
             if (RouterState.isWebShouldBeEnabled()) {
                 RouterState.setRestrictionApplied(false);
+                RouterState.setRestrictionPlanned(false);
             } else {
                 RouterState.setRestrictionApplied(true);
                 RouterState.CalculateNextPlannedTime();
