@@ -36,6 +36,9 @@ class RouterState {
     private static String mainHttpAddress = "http://192.168.1.1";
     private static int taskRepeatPeriod = 30;
     private static boolean appActive = true;
+    private static int operationStatus; // 0 - waiting, 1 - started, 2 - success, 3 - failure
+    private static RestrictionOperations nextRestictionOperation;
+    private static RestrictionOperations currentOperation;
     @SuppressLint("StaticFieldLeak")
     private static Context context;
     enum RestrictionOperations {
@@ -75,10 +78,6 @@ class RouterState {
         saveState();
     }
 
-    static RestrictionOperations nextRestictionOperation;
-    static RestrictionOperations currentOperation;
-    static int operationStatus; // 0 - waiting, 1 - started, 2 - success, 3 - failure
-
     static String getName() {
         return name;
     }
@@ -106,6 +105,10 @@ class RouterState {
         restrictionApplied = restrictionAppliedValue;
         saveState();
         updateIndicatorsPanel();
+    }
+
+    static boolean isRestrictionApplied() {
+        return restrictionApplied;
     }
 
     static String getRestrictionStartTime() {
@@ -168,35 +171,45 @@ class RouterState {
     }
 
     private static void saveState() {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putBoolean("webEnabled", webEnabled);
-        editor.putBoolean("restrictionPlanned", restrictionPlanned);
-        editor.putString("restrictionStartTime", restrictionStartTime);
-        editor.putString("restrictionEndTime", restrictionEndTime);
-        editor.putString("restrictionPlannedTime", dateTimeToString(restrictionPlannedTime));
-        editor.putString("restrictionDisableTime", dateTimeToString(restrictionDisableTime));
-        editor.putString("name", name);
-        editor.putString("password", password);
-        editor.putString("mainHttpAddress", mainHttpAddress);
-        editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
-        editor.apply(); // асинхронно и быстрее, чем commit()
+        try {
+            if (context != null) {
+                SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean("webEnabled", webEnabled);
+                editor.putBoolean("restrictionPlanned", restrictionPlanned);
+                editor.putString("restrictionStartTime", restrictionStartTime);
+                editor.putString("restrictionEndTime", restrictionEndTime);
+                editor.putString("restrictionPlannedTime", dateTimeToString(restrictionPlannedTime));
+                editor.putString("restrictionDisableTime", dateTimeToString(restrictionDisableTime));
+                editor.putString("name", name);
+                editor.putString("password", password);
+                editor.putString("mainHttpAddress", mainHttpAddress);
+                editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
+                editor.apply(); // асинхронно и быстрее, чем commit()
+            }
+        } catch (Exception e) {
+            Log.e("saveState", "Failed to save current state: ", e);
+        }
     }
 
     static void loadState(Context appContext) {
-        context = appContext;
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        webEnabled = prefs.getBoolean("webEnabled", false);
-        restrictionPlanned = prefs.getBoolean("restrictionPlanned", false);
-        restrictionStartTime = prefs.getString("restrictionStartTime", "");
-        restrictionEndTime = prefs.getString("restrictionEndTime", "");
-        restrictionPlannedTime = stringToDateTime(prefs.getString("restrictionPlannedTime", null));
-        restrictionDisableTime = stringToDateTime(prefs.getString("restrictionDisableTime", null));
-        name = prefs.getString("name", "");
-        password = prefs.getString("password", "");
-        mainHttpAddress = prefs.getString("mainHttpAddress", "");
-        taskRepeatPeriod = prefs.getInt("taskRepeatPeriod", 30);
-        Log.d("loadState", "loadState. name value: " + name);
+        try {
+            context = appContext;
+            SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            webEnabled = prefs.getBoolean("webEnabled", false);
+            restrictionPlanned = prefs.getBoolean("restrictionPlanned", false);
+            restrictionStartTime = prefs.getString("restrictionStartTime", "");
+            restrictionEndTime = prefs.getString("restrictionEndTime", "");
+            restrictionPlannedTime = stringToDateTime(prefs.getString("restrictionPlannedTime", null));
+            restrictionDisableTime = stringToDateTime(prefs.getString("restrictionDisableTime", null));
+            name = prefs.getString("name", "");
+            password = prefs.getString("password", "");
+            mainHttpAddress = prefs.getString("mainHttpAddress", "");
+            taskRepeatPeriod = prefs.getInt("taskRepeatPeriod", 30);
+            Log.d("loadState", "loadState. name value: " + name);
+        } catch (Exception e) {
+            Log.e("loadState", "Failed to load saved state: ", e);
+        }
     }
 
     private static String dateTimeToString(LocalDateTime dateTime) {
@@ -253,10 +266,15 @@ class RouterState {
     private static void updateIndicatorsPanel() {
         Log.d("updateIndicatorsPanel", "updateIndicatorsPanel executed");
         if (appActive && dotScheduled != null) {
-            if (restrictionPlanned)
+            if (restrictionPlanned && nextRestictionOperation == RestrictionOperations.DISABLE_WEB) {
                 dotScheduled.setBackgroundResource(R.drawable.circle_yellow);
-            else {
+                scheduledTime.setText(getTimeFromLocalDate(restrictionPlannedTime));
+            } else {
                 dotScheduled.setBackgroundResource(R.drawable.circle_gray);
+                scheduledTime.setText("");
+            }
+            if (!restrictionPlanned) {
+                activeUntil.setText("");
                 dotActiveUntil.setBackgroundResource(R.drawable.circle_gray);
             }
             if (webEnabled) {
@@ -266,19 +284,12 @@ class RouterState {
                 dotWebEnabled.setBackgroundResource(R.drawable.circle_orange);
                 MainActivity.webEnabled.setText("нет");
             }
-            if (restrictionApplied && nextRestictionOperation == RestrictionOperations.ENABLE_WEB)
-                dotActiveUntil.setBackgroundResource(R.drawable.circle_yellow);
-            else
-                dotActiveUntil.setBackgroundResource(R.drawable.circle_gray);
-            if (restrictionPlannedTime != null && restrictionPlanned) {
-                scheduledTime.setText(getTimeFromLocalDate(restrictionPlannedTime));
-            } else {
-                scheduledTime.setText("");
-            }
-            if (restrictionDisableTime != null && restrictionPlanned) {
+            if (restrictionDisableTime != null && restrictionApplied) {
                 activeUntil.setText(getTimeFromLocalDate(restrictionDisableTime));
+                dotActiveUntil.setBackgroundResource(R.drawable.circle_yellow);
             } else {
                 activeUntil.setText("");
+                dotActiveUntil.setBackgroundResource(R.drawable.circle_gray);
             }
             if (operationStatus == 1 && currentOperation == RestrictionOperations.ENABLE_WEB) {
                 dotWebEnabled.setBackgroundResource(R.drawable.circle_yellow);

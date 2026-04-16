@@ -43,6 +43,7 @@ public class DailyTaskWorker extends Worker {
                 RouterState.CalculateNextPlannedTime();
                 TaskScheduler.scheduleTask(getApplicationContext(), RouterState.getRestrictionPlannedTime(), false);
             }
+            RouterState.setOperationStatus(2);
             return Result.success();
         } else {
             AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is failed. Retrying");

@@ -120,6 +120,10 @@ public class MainActivity extends AppCompatActivity {
         AppLogger.addLog(this, "SUCCESS", "cancelSchedule. Requested schedule stop");
         TaskScheduler.cancelTask(getApplicationContext());
         RouterState.setRestrictionPlanned(false);
+        // If restriction is applied - enable WEB
+        if (RouterState.isRestrictionApplied()) {
+            startWan(view);
+        }
     }
 
     public void stopWan(View view) {
@@ -136,6 +140,12 @@ public class MainActivity extends AppCompatActivity {
         new RouterAction(latch, this).execute(1, false);
     }
 
+    public void checkWan(View view) {
+        AppLogger.addLog(this, "SUCCESS", "request to check WEB status");
+        final CountDownLatch latch = new CountDownLatch(0);
+        new RouterAction(latch, this).execute(0, true);
+    }
+
     private void initApplicationState() {
         // Get saved Router state
         RouterState.loadState(this);
@@ -148,8 +158,6 @@ public class MainActivity extends AppCompatActivity {
             RouterState.setRestrictionPlanned(true);
             RouterState.setRestrictionPlannedTime(nextTime);
         }
-        final CountDownLatch latch = new CountDownLatch(0);
-        new RouterAction(latch, this).execute(0, true);
         // Init AlarmManager
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         if (!alarmManager.canScheduleExactAlarms()) {

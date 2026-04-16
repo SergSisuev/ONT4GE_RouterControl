@@ -45,9 +45,7 @@ public class LogActivity extends AppCompatActivity {
                     .setNegativeButton("Отмена", null)
                     .show();
         });
-        btnReturn.setOnClickListener(v -> {
-                    startActivity(new Intent(LogActivity.this, MainActivity.class));
-                });
+        btnReturn.setOnClickListener((v -> finish()));
     }
 
     @Override
