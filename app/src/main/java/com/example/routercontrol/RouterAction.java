@@ -322,10 +322,10 @@ public class RouterAction extends AsyncTask {
             if (gcSessionKey == null || gcSessionKey.isEmpty()) {
                 throw new Exception("Get Wan Page request failed. No WAN session found");
             }
-            if (onlyCheck) {
-                int nat = Integer.parseInt(extractVariableValue(wanponHtml, "nat"));
-                Log.d("doInBackground", "doInBackground. Check current WEB state: " + nat);
-                AppLogger.addLog(context, "SUCCESS", "doInBackground. Check current WEB state: " + nat);
+            int nat = Integer.parseInt(extractVariableValue(wanponHtml, "nat"));
+            Log.d("doInBackground", "doInBackground. Check current WEB state: " + nat);
+            AppLogger.addLog(context, "SUCCESS", "doInBackground. Check current WEB state: " + nat);
+            if (onlyCheck || changeNatCommand == nat) {
                 RouterState.setRestrictionApplied(nat == 0);
                 latch.countDown();
                 return null;
