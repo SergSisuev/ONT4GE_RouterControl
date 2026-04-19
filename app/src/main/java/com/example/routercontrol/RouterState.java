@@ -24,7 +24,7 @@ import java.util.Objects;
 class RouterState {
     private static final String PREF_NAME = "RouterStatePrefs";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    private static boolean webEnabled = true;
+//    private static boolean webEnabled = true;
     private static boolean restrictionPlanned = false;
     private static boolean restrictionApplied = false;
     private static String restrictionStartTime = "";
@@ -56,9 +56,9 @@ class RouterState {
     static void setOperationStatus(int operationStatus) {
         RouterState.operationStatus = operationStatus;
         if (operationStatus == 2 && currentOperation == RestrictionOperations.ENABLE_WEB)
-            webEnabled = true;
+            restrictionApplied = true;
         if (operationStatus == 2 && currentOperation == RestrictionOperations.DISABLE_WEB)
-            webEnabled = false;
+            restrictionApplied = false;
         saveState();
         updateIndicatorsPanel();
     }
@@ -170,12 +170,12 @@ class RouterState {
         context = appContext;
     }
 
-    private static void saveState() {
+    static void saveState() {
         try {
             if (context != null) {
                 SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean("webEnabled", webEnabled);
+                editor.putBoolean("restrictionApplied", restrictionApplied);
                 editor.putBoolean("restrictionPlanned", restrictionPlanned);
                 editor.putString("restrictionStartTime", restrictionStartTime);
                 editor.putString("restrictionEndTime", restrictionEndTime);
@@ -196,7 +196,7 @@ class RouterState {
         try {
             context = appContext;
             SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-            webEnabled = prefs.getBoolean("webEnabled", false);
+            restrictionApplied = prefs.getBoolean("restrictionApplied", false);
             restrictionPlanned = prefs.getBoolean("restrictionPlanned", false);
             restrictionStartTime = prefs.getString("restrictionStartTime", "");
             restrictionEndTime = prefs.getString("restrictionEndTime", "");
@@ -277,7 +277,7 @@ class RouterState {
                 activeUntil.setText("");
                 dotActiveUntil.setBackgroundResource(R.drawable.circle_gray);
             }
-            if (webEnabled) {
+            if (!restrictionApplied) {
                 dotWebEnabled.setBackgroundResource(R.drawable.circle_green);
                 MainActivity.webEnabled.setText("да");
             } else {

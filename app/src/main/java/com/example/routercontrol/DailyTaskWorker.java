@@ -46,11 +46,11 @@ public class DailyTaskWorker extends Worker {
             RouterState.setOperationStatus(2);
             return Result.success();
         } else {
-            AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is failed. Retrying");
+            AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is failed");
             RouterState.CalculateNextPlannedTime();
             TaskScheduler.scheduleTask(context, RouterState.getRestrictionPlannedTime(), false);
             RouterState.setOperationStatus(3);
-            return Result.failure();
+            return Result.success();
         }
 
     }
@@ -60,6 +60,8 @@ public class DailyTaskWorker extends Worker {
             // Get required result of the work
             Log.d("executeRouterAction", "is web should be enabled? " + enableWeb);
             AppLogger.addLog(context, "SUCCESS", "executeRouterAction. is web should be enabled?" + enableWeb);
+            // Reload router state if it's already cleaned
+            RouterState.loadState(this.getApplicationContext());
             final CountDownLatch latch = new CountDownLatch(1);
             new RouterAction(latch, context).execute(enableWeb ? 1 : 0, false);
             // Wait for the result
