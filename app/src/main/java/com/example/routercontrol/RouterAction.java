@@ -1,7 +1,12 @@
 package com.example.routercontrol;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.util.Log;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -45,6 +50,7 @@ public class RouterAction extends AsyncTask {
     }
 
     private void doRouterAuth(String mainUrl) throws Exception {
+        String body = "";
         try {
             Log.d("doRouterAuth", "doRouterAuth are going to be executed");
             AppLogger.addLog(context, "SUCCESS", "doRouterAuth are going to be executed");
@@ -54,7 +60,7 @@ public class RouterAction extends AsyncTask {
                 put("encryPassword", getMD5HeshValue(RouterState.getPassword()));
                 put("encryUsername", getMD5HeshValue(RouterState.getName()));
             }};
-            postFormUrlEncodedRequest(mainUrl, parameters);
+            body = postFormUrlEncodedRequest(mainUrl, parameters);
             Log.d("doRouterAuth", "doRouterAuth has been executed");
             AppLogger.addLog(context, "SUCCESS", "doRouterAuth has been executed");
         } catch (Exception e) {
@@ -63,6 +69,10 @@ public class RouterAction extends AsyncTask {
             RouterState.setOperationStatus(3);
         }
         if (cookies == null) {
+            AppLogger.addLog(context, "FAILED", "doRouterAuth failed. Url:" + mainUrl);
+            AppLogger.addLog(context, "FAILED", "doRouterAuth failed. Password:" + RouterState.getPassword());
+            AppLogger.addLog(context, "FAILED", "doRouterAuth failed. Name:" + RouterState.getName());
+            AppLogger.addLog(context, "FAILED", "doRouterAuth failed. Body:" + body);
             throw new Exception("Login failed. No login session found");
         }
     }
@@ -307,6 +317,42 @@ public class RouterAction extends AsyncTask {
         return bigInt.toString(16);
     }
 
+    private void bindToWifi(Context context) {
+        try {
+            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                NetworkRequest networkRequest = new NetworkRequest.Builder()
+                        .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build();
+
+                connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(Network network) {
+                        super.onAvailable(network);
+                        // Привязываем все запросы приложения к этой сети
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            connectivityManager.bindProcessToNetwork(network);
+                            Log.d("bindToWifi", "The application bound to WiFi only");
+                        }
+                    }
+
+                    @Override
+                    public void onLost(Network network) {
+                        super.onLost(network);
+                        // Освобождаем привязку, если Wi-Fi пропал
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            connectivityManager.bindProcessToNetwork(null);
+                            Log.d("WiFi", "Wi-Fi lost, the binding is canceled");
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e("bindToWifi", "bindToWifi. Binding failed.", e);
+        }
+    }
+
     @Override
     protected Object doInBackground(Object[] objects) {
         try {
@@ -315,6 +361,8 @@ public class RouterAction extends AsyncTask {
             boolean onlyCheck = (Boolean) objects[1];
             Log.d("doInBackground", "doInBackground. changeNatCommand: " + changeNatCommand);
             AppLogger.addLog(context, "SUCCESS", "doInBackground. changeNatCommand: " + changeNatCommand);
+            // Bind to Wi-Fi only
+            bindToWifi(context);
             // Login and create session
             doRouterAuth(RouterState.getMainHttpAddress() + loginSuffiks);
             // Get wanpon page and get gcSessionKey
@@ -327,6 +375,7 @@ public class RouterAction extends AsyncTask {
             AppLogger.addLog(context, "SUCCESS", "doInBackground. Check current WEB state: " + nat);
             if (onlyCheck || changeNatCommand == nat) {
                 RouterState.setRestrictionApplied(nat == 0);
+                RouterState.setOperationStatus(2);
                 latch.countDown();
                 return null;
             }

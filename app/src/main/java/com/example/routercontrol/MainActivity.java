@@ -149,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
     private void initApplicationState() {
         // Get saved Router state
         RouterState.loadState(this);
+        RouterState.setAppActive(true);
         if (!RouterState.getRestrictionStartTime().isEmpty())
             startTime.setText(RouterState.getRestrictionStartTime());
         if (!RouterState.getRestrictionEndTime().isEmpty())
