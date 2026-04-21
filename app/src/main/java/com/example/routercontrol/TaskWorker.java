@@ -11,11 +11,11 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DailyTaskWorker extends Worker {
+public class TaskWorker extends Worker {
 
     private Context context;
 
-    public DailyTaskWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public TaskWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         this.context = context;
     }
@@ -43,27 +43,25 @@ public class DailyTaskWorker extends Worker {
                 RouterState.CalculateNextPlannedTime();
                 TaskScheduler.scheduleTask(getApplicationContext(), RouterState.getRestrictionPlannedTime(), false);
             }
-            RouterState.setOperationStatus(2);
-            return Result.success();
         } else {
             AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is failed");
             RouterState.CalculateNextPlannedTime();
             TaskScheduler.scheduleTask(context, RouterState.getRestrictionPlannedTime(), false);
             RouterState.setOperationStatus(3);
-            return Result.success();
         }
-
+        RouterState.saveState(this.getApplicationContext());
+        return Result.success();
     }
 
-    private int executeRouterAction(boolean enableWeb) {
+    private int executeRouterAction(boolean disableFilter) {
         try {
             // Get required result of the work
-            Log.d("executeRouterAction", "is web should be enabled? " + enableWeb);
-            AppLogger.addLog(context, "SUCCESS", "executeRouterAction. is web should be enabled?" + enableWeb);
+            Log.d("executeRouterAction", "is filer should be disable? " + disableFilter);
+            AppLogger.addLog(context, "SUCCESS", "executeRouterAction. is filter should be disable?" + disableFilter);
             // Reload router state if it's already cleaned
             RouterState.loadState(this.getApplicationContext());
             final CountDownLatch latch = new CountDownLatch(1);
-            new RouterAction(latch, context).execute(enableWeb ? 1 : 0, false);
+            new RouterAction(latch, context).execute(disableFilter ? 0 : 1, false);
             // Wait for the result
             try {
                 if (latch.await(30, TimeUnit.SECONDS)) {

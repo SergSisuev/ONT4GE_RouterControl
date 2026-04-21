@@ -83,28 +83,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        RouterState.setAppActive(false);
-        AppLogger.addLog(this, "SUCCESS", "onPause. Application is paused");
-        Log.d("onPause", "onPause. Application is paused");
-    }
-
-    @Override
     protected void onStop() {
-        super.onStop();
         RouterState.setAppActive(false);
+        RouterState.saveState(this);
         AppLogger.addLog(this, "SUCCESS", "onStop. Application is stopped");
         Log.d("onPause", "onStop. Application is stopped");
+        super.onStop();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-//        RouterState.loadState(this);
+        RouterState.loadState(this);
         RouterState.setAppActive(true);
         AppLogger.addLog(this, "SUCCESS", "onResume. Application is resumed");
         Log.d("onResume", "onResume. Application is resumed");
+    }
+
+    @Override
+    protected void onDestroy() {
+        RouterState.setAppActive(false);
+        RouterState.saveState(this);
+        Log.d("onDestroy", "onDestroy. Application is destroyed");
+        super.onDestroy();
     }
 
     public void startSchedule(View view) {
@@ -114,36 +115,40 @@ public class MainActivity extends AppCompatActivity {
         RouterState.setWebShouldBeDisabled();
         TaskScheduler.scheduleTask(this, RouterState.getRestrictionPlannedTime(), true);
         requestIgnoreBatteryOptimization();
+        RouterState.saveState(this);
     }
 
     public void cancelSchedule(View view) {
         AppLogger.addLog(this, "SUCCESS", "cancelSchedule. Requested schedule stop");
         TaskScheduler.cancelTask(getApplicationContext());
-        RouterState.setRestrictionPlanned(false);
         // If restriction is applied - enable WEB
         if (RouterState.isRestrictionApplied()) {
-            startWan(view);
+            disableFilter(view);
         }
+        RouterState.saveState(this);
     }
 
-    public void stopWan(View view) {
+    public void enableFilter(View view) {
         AppLogger.addLog(this, "SUCCESS", "request to stop the WEB");
         final CountDownLatch latch = new CountDownLatch(0);
         RouterState.setCurrentOperation(RouterState.RestrictionOperations.DISABLE_WEB);
-        new RouterAction(latch, this).execute(0, false);
+        new RouterAction(latch, this).execute(1, false);
+        RouterState.saveState(this);
     }
 
-    public void startWan(View view) {
+    public void disableFilter(View view) {
         AppLogger.addLog(this, "SUCCESS", "request to start the WEB");
         final CountDownLatch latch = new CountDownLatch(0);
         RouterState.setCurrentOperation(RouterState.RestrictionOperations.ENABLE_WEB);
-        new RouterAction(latch, this).execute(1, false);
+        new RouterAction(latch, this).execute(0, false);
+        RouterState.saveState(this);
     }
 
     public void checkWan(View view) {
         AppLogger.addLog(this, "SUCCESS", "request to check WEB status");
         final CountDownLatch latch = new CountDownLatch(0);
         new RouterAction(latch, this).execute(0, true);
+        RouterState.saveState(this);
     }
 
     private void initApplicationState() {

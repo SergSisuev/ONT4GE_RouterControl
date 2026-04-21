@@ -24,7 +24,7 @@ import java.util.Objects;
 class RouterState {
     private static final String PREF_NAME = "RouterStatePrefs";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-//    private static boolean webEnabled = true;
+    //    private static boolean webEnabled = true;
     private static boolean restrictionPlanned = false;
     private static boolean restrictionApplied = false;
     private static String restrictionStartTime = "";
@@ -41,6 +41,7 @@ class RouterState {
     private static RestrictionOperations currentOperation;
     @SuppressLint("StaticFieldLeak")
     private static Context context;
+
     enum RestrictionOperations {
         DISABLE_WEB,
         ENABLE_WEB
@@ -56,10 +57,9 @@ class RouterState {
     static void setOperationStatus(int operationStatus) {
         RouterState.operationStatus = operationStatus;
         if (operationStatus == 2 && currentOperation == RestrictionOperations.ENABLE_WEB)
-            restrictionApplied = true;
-        if (operationStatus == 2 && currentOperation == RestrictionOperations.DISABLE_WEB)
             restrictionApplied = false;
-        saveState();
+        if (operationStatus == 2 && currentOperation == RestrictionOperations.DISABLE_WEB)
+            restrictionApplied = true;
         updateIndicatorsPanel();
     }
 
@@ -75,7 +75,6 @@ class RouterState {
 
     static void setMainHttpAddress(String mainHttpAddress) {
         RouterState.mainHttpAddress = mainHttpAddress;
-        saveState();
     }
 
     static String getName() {
@@ -84,26 +83,27 @@ class RouterState {
 
     static void setName(String name) {
         RouterState.name = name;
-        saveState();
     }
 
     static String getPassword() {
         return password;
     }
+
     static void setPassword(String password) {
         RouterState.password = password;
-        saveState();
     }
 
     static void setRestrictionPlanned(boolean restrictionPlanned) {
         RouterState.restrictionPlanned = restrictionPlanned;
-        saveState();
+        if (!restrictionPlanned) {
+            RouterState.restrictionPlannedTime = null;
+            RouterState.restrictionDisableTime = null;
+        }
         updateIndicatorsPanel();
     }
 
     static void setRestrictionApplied(boolean restrictionAppliedValue) {
         restrictionApplied = restrictionAppliedValue;
-        saveState();
         updateIndicatorsPanel();
     }
 
@@ -117,7 +117,6 @@ class RouterState {
 
     static void setRestrictionStartTime(String restrictionStartTime) {
         RouterState.restrictionStartTime = restrictionStartTime;
-        saveState();
     }
 
     static String getRestrictionEndTime() {
@@ -126,7 +125,6 @@ class RouterState {
 
     static void setRestrictionEndTime(String restrictionEndTime) {
         RouterState.restrictionEndTime = restrictionEndTime;
-        saveState();
     }
 
     static Date getRestrictionPlannedTime() {
@@ -139,13 +137,21 @@ class RouterState {
         RouterState.restrictionPlannedTime = getLocalTimeFromString(restrictionPlannedTime, true);
         // Set nextRestictionOperation
         nextRestictionOperation = RestrictionOperations.DISABLE_WEB;
-        saveState();
+        updateIndicatorsPanel();
+    }
+
+    static void clearRestrictionPlannedTime() {
+        RouterState.restrictionPlannedTime = null;
         updateIndicatorsPanel();
     }
 
     static void setRestrictionDisableTime(String restrictionDisableTime) {
         RouterState.restrictionDisableTime = getLocalTimeFromString(restrictionDisableTime, true);
-        saveState();
+        updateIndicatorsPanel();
+    }
+
+    static void clearRestrictionDisabledTime() {
+        RouterState.restrictionDisableTime = null;
         updateIndicatorsPanel();
     }
 
@@ -159,7 +165,6 @@ class RouterState {
 
     static void setTaskRepeatPeriod(int taskRepeatPeriod) {
         RouterState.taskRepeatPeriod = taskRepeatPeriod;
-        saveState();
     }
 
     static int getTaskRepeatPeriod() {
@@ -170,23 +175,23 @@ class RouterState {
         context = appContext;
     }
 
-    static void saveState() {
+    static void saveState(Context appContext) {
         try {
-            if (context != null) {
-                SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean("restrictionApplied", restrictionApplied);
-                editor.putBoolean("restrictionPlanned", restrictionPlanned);
-                editor.putString("restrictionStartTime", restrictionStartTime);
-                editor.putString("restrictionEndTime", restrictionEndTime);
-                editor.putString("restrictionPlannedTime", dateTimeToString(restrictionPlannedTime));
-                editor.putString("restrictionDisableTime", dateTimeToString(restrictionDisableTime));
-                editor.putString("name", name);
-                editor.putString("password", password);
-                editor.putString("mainHttpAddress", mainHttpAddress);
-                editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
-                editor.apply(); // асинхронно и быстрее, чем commit()
-            }
+            Log.d("saveState", "saveState. Save state executed");
+            if (context == null) context = appContext;
+            SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("restrictionApplied", restrictionApplied);
+            editor.putBoolean("restrictionPlanned", restrictionPlanned);
+            editor.putString("restrictionStartTime", restrictionStartTime);
+            editor.putString("restrictionEndTime", restrictionEndTime);
+            editor.putString("restrictionPlannedTime", dateTimeToString(restrictionPlannedTime));
+            editor.putString("restrictionDisableTime", dateTimeToString(restrictionDisableTime));
+            editor.putString("name", name);
+            editor.putString("password", password);
+            editor.putString("mainHttpAddress", mainHttpAddress);
+            editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
+            editor.apply(); // асинхронно и быстрее, чем commit()
         } catch (Exception e) {
             Log.e("saveState", "Failed to save current state: ", e);
         }
@@ -206,7 +211,7 @@ class RouterState {
             password = prefs.getString("password", "");
             mainHttpAddress = prefs.getString("mainHttpAddress", "");
             taskRepeatPeriod = prefs.getInt("taskRepeatPeriod", 30);
-            Log.d("loadState", "loadState. name value: " + name);
+            Log.d("loadState", "loadState. LoadState executed: " + password);
         } catch (Exception e) {
             Log.e("loadState", "Failed to load saved state: ", e);
         }
@@ -231,10 +236,10 @@ class RouterState {
     }
 
     private static LocalDateTime getLocalTimeFromString(String plannedTime, boolean addDay) {
-        ZoneId zoneId = ZoneId.systemDefault ( );
-        ZoneRules rules = zoneId.getRules ( );
-        Instant now = Instant.now ( );
-        ZoneOffset offset = rules.getOffset ( now );
+        ZoneId zoneId = ZoneId.systemDefault();
+        ZoneRules rules = zoneId.getRules();
+        Instant now = Instant.now();
+        ZoneOffset offset = rules.getOffset(now);
         LocalDateTime currentDate = java.time.LocalDateTime.now();
         String[] endTimeParts = Objects.requireNonNull(plannedTime.split(":"));
         LocalDateTime endDateTime = LocalDateTime.of(currentDate.getYear(), currentDate.getMonthValue(), currentDate.getDayOfMonth(),
@@ -246,25 +251,23 @@ class RouterState {
     }
 
     static void CalculateNextPlannedTime() {
-        LocalDateTime nextPlannedDate = restrictionPlannedTime.plusMinutes(taskRepeatPeriod);
-        Log.d("CalculateNextPlannedTime", "Restriction plannded time:" + restrictionPlannedTime.toString());
-        Log.d("CalculateNextPlannedTime", "Restriction disable time:" + restrictionDisableTime.toString());
-        Log.d("CalculateNextPlannedTime", "Restriction next planned time:" + nextPlannedDate.toString());
+        nextRestictionOperation = RestrictionOperations.ENABLE_WEB;
+        LocalDateTime currentDate = LocalDateTime.now();
+        Log.d("CalculateNextPlannedTime", "Restriction disable time: " + restrictionDisableTime.toString());
         // Check if restriction should be finished
-        if (nextPlannedDate.isAfter(restrictionDisableTime) || nextPlannedDate.isEqual(restrictionDisableTime)) {
-            nextPlannedDate = restrictionDisableTime;
-            nextRestictionOperation = RestrictionOperations.ENABLE_WEB;
+        if (restrictionDisableTime.isBefore(currentDate) || restrictionDisableTime.isEqual(currentDate)) {
+            LocalDateTime nextPlannedDate = currentDate.plusMinutes(taskRepeatPeriod);
+            restrictionPlannedTime = nextPlannedDate;
         } else {
-            nextRestictionOperation = RestrictionOperations.DISABLE_WEB;
+            restrictionPlannedTime = restrictionDisableTime;
         }
-        restrictionPlannedTime = nextPlannedDate;
         Log.d("CalculateNextPlannedTime", "Restriction restrictionPlannedTime:" + restrictionPlannedTime.toString());
         Log.d("CalculateNextPlannedTime", "nextRestictionOperation:" + nextRestictionOperation);
         updateIndicatorsPanel();
     }
 
     private static void updateIndicatorsPanel() {
-        Log.d("updateIndicatorsPanel", "updateIndicatorsPanel executed");
+        Log.d("updateIndicatorsPanel", "updateIndicatorsPanel executed: " + appActive);
         if (appActive && dotScheduled != null) {
             if (restrictionPlanned && nextRestictionOperation == RestrictionOperations.DISABLE_WEB) {
                 dotScheduled.setBackgroundResource(R.drawable.circle_yellow);

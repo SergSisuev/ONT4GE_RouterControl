@@ -114,24 +114,24 @@
             android:weightSum="2">
 
             <Button
-                android:id="@+id/btnStopWan"
+                android:id="@+id/btnEnableFilter"
                 android:layout_width="0dp"
                 android:layout_height="58dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:text="Отключить WEB"
                 android:textAllCaps="false"
-                android:onClick="stopWan" />
+                android:onClick="enableFilter" />
 
             <Button
-                android:id="@+id/btnStartWan"
+                android:id="@+id/btnDisableFilter"
                 android:layout_width="0dp"
                 android:layout_height="58dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:text="Включить WEB"
                 android:textAllCaps="false"
-                android:onClick="startWan" />
+                android:onClick="disableFilter" />
         </LinearLayout>
 
         <!-- Блок индикаторов с цветовой индикацией -->
