@@ -40,7 +40,8 @@ public class RouterAction extends AsyncTask {
     private final CountDownLatch latch;
     private final Context context;
     private final String loginSuffiks = "/cgi-bin/login.cgi";
-    private final String wanSuffiks = "/cgi-bin/wanpon_edit.cgi";
+    private final String securitySuffiks = "/cgi-bin/macfilter.cgi";
+    private final String indexSuffiks = "/cgi-bin/index.cgi";
     private String cookies;
     private String gcSessionKey;
 
@@ -77,23 +78,42 @@ public class RouterAction extends AsyncTask {
         }
     }
 
-    private String getWanPageWithSessionKey(String wanUrl) {
-        Log.d("getWanPageWithSessionKey", "getRequestWithQuery are going to be executed");
-        AppLogger.addLog(context, "SUCCESS", "getRequestWithQuery are going to be executed");
+    private String doRouterLogout(String mainUrl) throws Exception {
+        Log.d("doRouterLogout", "doRouterLogout are going to be executed");
+        AppLogger.addLog(context, "SUCCESS", "doRouterLogout are going to be executed");
         try {
             HashMap<String, String> parameters = new HashMap<String, String>() {{
                 put("onSubmit", "2");
-                put("pvceditindex", "1");
-                put("child_index", "1");
-                put("encapmode", "IPoE");
-                put("operate", "modify");
+                put("language_select", "English");
             }};
-            String wanponHtml = getRequestWithQuery(wanUrl, parameters);
-            Log.d("getWanPageWithSessionKey", "getRequestWithQuery has been executed");
-            gcSessionKey = extractVariableValue(wanponHtml, "gcsessionkey");
-            Log.d("getWanPageWithSessionKey", "gcSessionKey value: " + gcSessionKey);
+            String responseHtml = getRequestWithQuery(mainUrl, parameters);
+            Log.d("doRouterLogout", "doRouterLogout has been executed");
+            return responseHtml;
+        } catch (Exception e) {
+            Log.e("doRouterLogout", "doRouterLogout error:", e);
+            AppLogger.addLog(context, "FAILED", "doRouterLogout error:");
+            RouterState.setOperationStatus(3);
+        }
+        return "";
+    }
+
+    private String getSecurityPageWithSessionKey(String securityUrl) {
+        Log.d("getSecurityPageWithSessionKey", "getRequestWithQuery are going to be executed");
+        AppLogger.addLog(context, "SUCCESS", "getRequestWithQuery are going to be executed");
+        try {
+//            HashMap<String, String> parameters = new HashMap<String, String>() {{
+//                put("onSubmit", "2");
+//                put("pvceditindex", "1");
+//                put("child_index", "1");
+//                put("encapmode", "IPoE");
+//                put("operate", "modify");
+//            }};
+            String responseHtml = getRequestWithQuery(securityUrl, null);
+            Log.d("getSecurityPageWithSessionKey", "getSecurityPageWithSessionKey has been executed");
+            gcSessionKey = extractVariableValue(responseHtml, "gcsessionkey");
+            Log.d("getSecurityPageWithSessionKey", "gcSessionKey value: " + gcSessionKey);
             AppLogger.addLog(context, "SUCCESS", "gcSessionKey value: " + gcSessionKey);
-            return wanponHtml;
+            return responseHtml;
         } catch (Exception e) {
             Log.e("getWanPageWithSessionKey", "getWanPageWithSessionKey error:", e);
             AppLogger.addLog(context, "FAILED", "getWanPageWithSessionKey error:");
@@ -102,77 +122,32 @@ public class RouterAction extends AsyncTask {
         return "";
     }
 
-    private void changeWanConnectionNat(int natParameterValue, String wanponHtml, String wanUrl) {
-        Log.d("changeWanConnectionNat", "changeWanConnectionNat request are going to be executed");
-        AppLogger.addLog(context, "SUCCESS", "changeWanConnectionNat request are going to be executed");
+    private void changeMacFilter(String securityUrl, int filterEnableValue) {
+        Log.d("changeMacFilter", "changeMacFilter request are going to be executed");
+        AppLogger.addLog(context, "SUCCESS", "changeMacFilter request are going to be executed");
         try {
             HashMap<String, String> parameters = new HashMap<String, String>() {{
                 put("onSubmit", "1");
-                put("pvcindex", extractVariableValue(wanponHtml, "pvcindex"));
-                put("child_index", extractVariableValue(wanponHtml, "child_index"));
-                put("pvcenable", "1");
-                put("pvcdhcpenable", "1");
-                put("encapmode", extractVariableValue(wanponHtml, "encapsulatemode"));
-                put("pvcipprotocol", "1");
-                put("pppauthtype", "");
-                put("pppconntrigger", "");
-                put("ipacqmode", "Static");
-                put("ipnat", String.valueOf(natParameterValue));
                 put("sessionkey", gcSessionKey);
-                put("ipv6getmodeid", "");
-                put("ipv6staticguaid", "");
-                put("ipv6staticguagwid", "");
-                put("ipv6staticdnsid", "");
-                put("prefixdelegateid", "");
-                put("X_8021pvalue", "0");
-                put("wanpon_operation", "modify_pvc");
-                put("dslite_enable", "0");
-                put("laninterface", "");
-                put("nptv6_enable", "0");
-                put("wanpon_connectionType", "IP_Routed");
-                put("dscp_enable", "0");
-                put("pppoe_proxyenable", "");
-                put("passthrough_enable", "");
-                put("servicetype", extractVariableValue(wanponHtml, "servicetype"));
-                put("wanponedit_ppppassword", "");
-                put("wanpon_connectname", "1_1_IPoE");
-                put("wanponedit_vlanmode", "2");
-                put("wanponedit_vlanid", "903");
-                put("wanponedit_8021p", "0");
-                put("wanponedit_ppptranstype", "PPPoE");
-                put("wanponedit_pppusername", "");
-                put("wanponedit_dmsname", "");
-                put("wanponedit_authtype", "Auto");
-                put("wanponedit_ppptrigger", "AlwaysOn");
-                put("wanponedit_idletime", "");
-                put("wanponedit_Ipv4getmode", "Static");
-                put("wanponedit_staticip", "10.14.31.243");
-                put("wanponedit_staticmask", "255.255.252.0");
-                put("wanponedit_staticgateway", "10.14.31.254");
-                put("wanponedit_staticdns1", "192.168.192.168");
-                put("wanponedit_staticdns2", "192.168.168.192");
-                put("wanponedit_staticdns3", "");
-                put("ipv6getmode", "Manual");
-                put("wanponedit_ipv6staticgua", "None");
-                put("wanponedit_ipv6staticguaipaddress", "");
-                put("wanponedit_ipv6staticguaiplen", "");
-                put("wanponedit_ipv6staticguaipgwaddress", "");
-                put("wanponedit_ipv6staticdns1", "");
-                put("wanponedit_ipv6staticdns2", "");
-                put("wanponedit_ipv6staticdns3", "");
-                put("wanponedit_ipv6staticpdipprefix", "");
-                put("wanponedit_ipv6staticpdiplen", "");
-                put("wanponedit_nat", "on");
-                put("wanponedit_mtu", "1500");
-                put("wanponedit_multicastvlan", "");
+                put("operation", "page_submit");
+                put("delnumberlist", "");
+                put("filter_enable", String.valueOf(filterEnableValue));
+                put("modify_index", "");
+                put("src_macaddress", "");
+                put("dst_macaddress", "");
+                put("macfilter_enable", "on");
+                put("macfilter_mode", "Include");
+                put("macfilter_protocol", "IP");
+                put("macfilter_scmac", "");
+                put("macfilter_dsmac", "");
             }};
-            String stopWanHtml = postFormUrlEncodedRequest(wanUrl, parameters);
-            Log.d("changeWanConnectionNat", "changeWanConnectionNat request has been executed");
-            AppLogger.addLog(context, "SUCCESS", "changeWanConnectionNat request has been executed");
+            String stopWanHtml = postFormUrlEncodedRequest(securityUrl, parameters);
+            Log.d("changeMacFilter", "changeMacFilter request has been executed");
+            AppLogger.addLog(context, "SUCCESS", "changeMacFilter request has been executed");
 //            Log.d("doAuthPostRequest", "stop wan response:\n" + stopWanHtml);
         } catch (Exception e) {
-            Log.e("changeWanConnectionNat", "changeWanConnectionNat error:", e);
-            AppLogger.addLog(context, "FAILED", "changeWanConnectionNat error:");
+            Log.e("changeMacFilter", "changeMacFilter error:", e);
+            AppLogger.addLog(context, "FAILED", "changeMacFilter error:");
             RouterState.setOperationStatus(3);
         }
     }
@@ -317,72 +292,38 @@ public class RouterAction extends AsyncTask {
         return bigInt.toString(16);
     }
 
-    private void bindToWifi(Context context) {
-        try {
-            ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                NetworkRequest networkRequest = new NetworkRequest.Builder()
-                        .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                        .build();
-
-                connectivityManager.requestNetwork(networkRequest, new ConnectivityManager.NetworkCallback() {
-                    @Override
-                    public void onAvailable(Network network) {
-                        super.onAvailable(network);
-                        // Привязываем все запросы приложения к этой сети
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            connectivityManager.bindProcessToNetwork(network);
-                            Log.d("bindToWifi", "The application bound to WiFi only");
-                        }
-                    }
-
-                    @Override
-                    public void onLost(Network network) {
-                        super.onLost(network);
-                        // Освобождаем привязку, если Wi-Fi пропал
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            connectivityManager.bindProcessToNetwork(null);
-                            Log.d("WiFi", "Wi-Fi lost, the binding is canceled");
-                        }
-                    }
-                });
-            }
-        } catch (Exception e) {
-            Log.e("bindToWifi", "bindToWifi. Binding failed.", e);
-        }
-    }
-
     @Override
     protected Object doInBackground(Object[] objects) {
         try {
             Log.d("doInBackground", "doInBackground. Parameters: " + Arrays.toString(objects));
-            int changeNatCommand = (Integer) objects[0];
+            int filterEnableCommand = (Integer) objects[0];
             boolean onlyCheck = (Boolean) objects[1];
-            Log.d("doInBackground", "doInBackground. changeNatCommand: " + changeNatCommand);
-            AppLogger.addLog(context, "SUCCESS", "doInBackground. changeNatCommand: " + changeNatCommand);
-            // Bind to Wi-Fi only
-            bindToWifi(context);
+            Log.d("doInBackground", "doInBackground. filterEnableCommand: " + filterEnableCommand);
+            AppLogger.addLog(context, "SUCCESS", "doInBackground. filterEnableCommand: " + filterEnableCommand);
             // Login and create session
             doRouterAuth(RouterState.getMainHttpAddress() + loginSuffiks);
-            // Get wanpon page and get gcSessionKey
-            String wanponHtml = getWanPageWithSessionKey(RouterState.getMainHttpAddress() + wanSuffiks);
+            // Get security page and get gcSessionKey
+            String securityHtml = getSecurityPageWithSessionKey(RouterState.getMainHttpAddress() + securitySuffiks);
             if (gcSessionKey == null || gcSessionKey.isEmpty()) {
-                throw new Exception("Get Wan Page request failed. No WAN session found");
+                throw new Exception("Get Security Page request failed. No security session found");
             }
-            int nat = Integer.parseInt(extractVariableValue(wanponHtml, "nat"));
-            Log.d("doInBackground", "doInBackground. Check current WEB state: " + nat);
-            AppLogger.addLog(context, "SUCCESS", "doInBackground. Check current WEB state: " + nat);
-            if (onlyCheck || changeNatCommand == nat) {
-                RouterState.setRestrictionApplied(nat == 0);
+            int isEnabled = Integer.parseInt(extractVariableValue(securityHtml, "macfilter_enable"));
+            Log.d("doInBackground", "doInBackground. Current security filter enabled: " + isEnabled);
+            AppLogger.addLog(context, "SUCCESS", "doInBackground. Current security filter enabled: " + isEnabled);
+            if (onlyCheck || isEnabled == filterEnableCommand) {
+                RouterState.setRestrictionApplied(isEnabled == 1);
                 RouterState.setOperationStatus(2);
                 latch.countDown();
+                // Do the logout to finish session
+                doRouterLogout(RouterState.getMainHttpAddress() + indexSuffiks);
                 return null;
             }
-            // Change WAN connection NAT parameter
-            changeWanConnectionNat(changeNatCommand, wanponHtml, RouterState.getMainHttpAddress() + wanSuffiks);
+            // Enable or disable white list filter
+            changeMacFilter(RouterState.getMainHttpAddress() + securitySuffiks, filterEnableCommand);
             RouterState.setOperationStatus(2);
             latch.countDown();
+            // Do the logout to finish session
+            doRouterLogout(RouterState.getMainHttpAddress() + indexSuffiks);
         } catch (Exception e) {
             Log.e("doInBackground", "doInBackground error:", e);
             AppLogger.addLog(context, "FAILED", "doInBackground. Task execution failed: " + e.getMessage());
