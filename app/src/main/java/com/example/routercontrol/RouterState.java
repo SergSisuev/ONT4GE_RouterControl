@@ -24,7 +24,6 @@ import java.util.Objects;
 class RouterState {
     private static final String PREF_NAME = "RouterStatePrefs";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    //    private static boolean webEnabled = true;
     private static boolean restrictionPlanned = false;
     private static boolean restrictionApplied = false;
     private static String restrictionStartTime = "";
@@ -52,6 +51,10 @@ class RouterState {
         // Set operationStatus to started
         operationStatus = 1;
         updateIndicatorsPanel();
+    }
+
+    static RestrictionOperations getCurrentOperation() {
+        return currentOperation;
     }
 
     static void setOperationStatus(int operationStatus) {
@@ -140,18 +143,8 @@ class RouterState {
         updateIndicatorsPanel();
     }
 
-    static void clearRestrictionPlannedTime() {
-        RouterState.restrictionPlannedTime = null;
-        updateIndicatorsPanel();
-    }
-
     static void setRestrictionDisableTime(String restrictionDisableTime) {
         RouterState.restrictionDisableTime = getLocalTimeFromString(restrictionDisableTime, true);
-        updateIndicatorsPanel();
-    }
-
-    static void clearRestrictionDisabledTime() {
-        RouterState.restrictionDisableTime = null;
         updateIndicatorsPanel();
     }
 
@@ -163,16 +156,16 @@ class RouterState {
         return (nextRestictionOperation == RestrictionOperations.ENABLE_WEB);
     }
 
+    static RestrictionOperations getNextRestictionOperation() {
+        return nextRestictionOperation;
+    }
+
     static void setTaskRepeatPeriod(int taskRepeatPeriod) {
         RouterState.taskRepeatPeriod = taskRepeatPeriod;
     }
 
     static int getTaskRepeatPeriod() {
         return RouterState.taskRepeatPeriod;
-    }
-
-    static void setRouterContext(Context appContext) {
-        context = appContext;
     }
 
     static void saveState(Context appContext) {
@@ -191,6 +184,7 @@ class RouterState {
             editor.putString("password", password);
             editor.putString("mainHttpAddress", mainHttpAddress);
             editor.putInt("taskRepeatPeriod", taskRepeatPeriod);
+            editor.putString("nextRestictionOperation", String.valueOf(nextRestictionOperation));
             editor.apply(); // асинхронно и быстрее, чем commit()
         } catch (Exception e) {
             Log.e("saveState", "Failed to save current state: ", e);
@@ -211,6 +205,7 @@ class RouterState {
             password = prefs.getString("password", "");
             mainHttpAddress = prefs.getString("mainHttpAddress", "");
             taskRepeatPeriod = prefs.getInt("taskRepeatPeriod", 30);
+            nextRestictionOperation = RestrictionOperations.valueOf(prefs.getString("nextRestictionOperation", ""));
             Log.d("loadState", "loadState. LoadState executed: " + password);
         } catch (Exception e) {
             Log.e("loadState", "Failed to load saved state: ", e);
@@ -250,17 +245,25 @@ class RouterState {
         return endDateTime;
     }
 
-    static void CalculateNextPlannedTime() {
-        nextRestictionOperation = RestrictionOperations.ENABLE_WEB;
+    static void CalculateNextPlannedTime(boolean Repeat) {
+        if (Repeat) {
+            // Repeat previous operation
+            nextRestictionOperation = currentOperation;
+        } else {
+            nextRestictionOperation = currentOperation == RestrictionOperations.ENABLE_WEB ?
+                    RestrictionOperations.DISABLE_WEB : RestrictionOperations.ENABLE_WEB;
+        }
         LocalDateTime currentDate = LocalDateTime.now();
         Log.d("CalculateNextPlannedTime", "Restriction disable time: " + restrictionDisableTime.toString());
+        LocalDateTime nextPlannedDate = restrictionDisableTime;
+        if (Repeat) {
+            nextPlannedDate = currentDate.plusMinutes(taskRepeatPeriod);
+        }
         // Check if restriction should be finished
         if (restrictionDisableTime.isBefore(currentDate) || restrictionDisableTime.isEqual(currentDate)) {
-            LocalDateTime nextPlannedDate = currentDate.plusMinutes(taskRepeatPeriod);
-            restrictionPlannedTime = nextPlannedDate;
-        } else {
-            restrictionPlannedTime = restrictionDisableTime;
+            nextRestictionOperation = RestrictionOperations.ENABLE_WEB;
         }
+        restrictionPlannedTime = nextPlannedDate;
         Log.d("CalculateNextPlannedTime", "Restriction restrictionPlannedTime:" + restrictionPlannedTime.toString());
         Log.d("CalculateNextPlannedTime", "nextRestictionOperation:" + nextRestictionOperation);
         updateIndicatorsPanel();
