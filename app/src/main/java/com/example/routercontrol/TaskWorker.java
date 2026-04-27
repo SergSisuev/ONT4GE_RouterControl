@@ -26,11 +26,12 @@ public class TaskWorker extends Worker {
         Log.d("DailyTaskWorker", "The task is started");
         AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is started at: " +
                 new java.util.Date());
+        // Reload router state if it's already cleaned
+        RouterState.loadState(this.getApplicationContext());
 
-        RouterState.setCurrentOperation(RouterState.isWebShouldBeEnabled() ?
-                RouterState.RestrictionOperations.ENABLE_WEB : RouterState.RestrictionOperations.DISABLE_WEB);
+        RouterState.setCurrentOperation(RouterState.getNextRestictionOperation());
         AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is going to be started");
-        int result = executeRouterAction(RouterState.isWebShouldBeEnabled());
+        int result = executeRouterAction();
         AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is executed");
 
         if (result == 1) {
@@ -40,12 +41,12 @@ public class TaskWorker extends Worker {
                 RouterState.setRestrictionPlanned(false);
             } else {
                 RouterState.setRestrictionApplied(true);
-                RouterState.CalculateNextPlannedTime();
+                RouterState.CalculateNextPlannedTime(false);
                 TaskScheduler.scheduleTask(getApplicationContext(), RouterState.getRestrictionPlannedTime(), false);
             }
         } else {
             AppLogger.addLog(context, "SUCCESS", "DailyTaskWorker. The task is failed");
-            RouterState.CalculateNextPlannedTime();
+            RouterState.CalculateNextPlannedTime(true);
             TaskScheduler.scheduleTask(context, RouterState.getRestrictionPlannedTime(), false);
             RouterState.setOperationStatus(3);
         }
@@ -53,15 +54,14 @@ public class TaskWorker extends Worker {
         return Result.success();
     }
 
-    private int executeRouterAction(boolean disableFilter) {
+    private int executeRouterAction() {
         try {
             // Get required result of the work
-            Log.d("executeRouterAction", "is filer should be disable? " + disableFilter);
-            AppLogger.addLog(context, "SUCCESS", "executeRouterAction. is filter should be disable?" + disableFilter);
-            // Reload router state if it's already cleaned
-            RouterState.loadState(this.getApplicationContext());
+            Log.d("executeRouterAction", "Executing router operation: " + RouterState.getCurrentOperation());
+            AppLogger.addLog(context, "SUCCESS", "eExecuting router operation: " + RouterState.getCurrentOperation());
             final CountDownLatch latch = new CountDownLatch(1);
-            new RouterAction(latch, context).execute(disableFilter ? 0 : 1, false);
+            final int enableFilter = RouterState.getCurrentOperation() == RouterState.RestrictionOperations.DISABLE_WEB ? 1 : 0;
+            new RouterAction(latch, context).execute(enableFilter, false);
             // Wait for the result
             try {
                 if (latch.await(30, TimeUnit.SECONDS)) {

@@ -41,8 +41,8 @@ public class TaskScheduler {
             Log.d("scheduleDailyTask", "The task has been scheduled to:" + calendar.getTime());
             AppLogger.addLog(context, "SUCCESS", "The task has been scheduled to: " +
                     calendar.getTime());
-            AppLogger.addLog(context, "SUCCESS", "Is WEB should be enabled after this operation: " +
-                    RouterState.isWebShouldBeEnabled());
+            AppLogger.addLog(context, "SUCCESS", "Next Router action: " +
+                    RouterState.getNextRestictionOperation());
 
             long delayInMillis = calendar.getTimeInMillis() - System.currentTimeMillis();
 

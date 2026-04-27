@@ -136,7 +136,7 @@ public class RouterAction extends AsyncTask {
                 put("src_macaddress", "");
                 put("dst_macaddress", "");
                 put("macfilter_enable", "on");
-                put("macfilter_mode", "Include");
+                put("macfilter_mode", "Exclude");
                 put("macfilter_protocol", "IP");
                 put("macfilter_scmac", "");
                 put("macfilter_dsmac", "");
@@ -312,14 +312,10 @@ public class RouterAction extends AsyncTask {
             AppLogger.addLog(context, "SUCCESS", "doInBackground. Current security filter enabled: " + isEnabled);
             if (onlyCheck || isEnabled == filterEnableCommand) {
                 RouterState.setRestrictionApplied(isEnabled == 1);
-                RouterState.setOperationStatus(2);
-                latch.countDown();
-                // Do the logout to finish session
-                doRouterLogout(RouterState.getMainHttpAddress() + indexSuffiks);
-                return null;
+            } else {
+                // Enable or disable white list filter
+                changeMacFilter(RouterState.getMainHttpAddress() + securitySuffiks, filterEnableCommand);
             }
-            // Enable or disable white list filter
-            changeMacFilter(RouterState.getMainHttpAddress() + securitySuffiks, filterEnableCommand);
             RouterState.setOperationStatus(2);
             latch.countDown();
             // Do the logout to finish session
